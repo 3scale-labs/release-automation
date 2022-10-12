@@ -8,15 +8,12 @@ on:
   workflow_dispatch:
     # Inputs the workflow accepts.
     inputs:
-      Tag:
+      tag:
         description: 'Tag to be created along with release'
-        # Default value if no value is explicitly provided
-        default: ''
         # Input has to be provided for the workflow to run
         required: true
       git_ref: 
         description: 'A git reference to create tag from. Can be either commit hash, or branch name.'
-        default: ''
         required: true
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
@@ -34,6 +31,6 @@ jobs:
            repo: ${{ matrix.repo }}
            token: ${{ secrets.ACCESS_TOKEN_GITHUB }}
            workflow: tagRelease.yml
-           inputs: '{ "Tag": "${{ inputs.Tag }}", "Commitish": "${{ inputs.git_ref }}"}'
+           inputs: '{ "tag": "${{ inputs.tag }}", "git_ref": "${{ inputs.git_ref }}"}'
            wait-for-completion: true
            display-workflow-run-url: true
