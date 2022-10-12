@@ -1,0 +1,39 @@
+# This is a basic workflow that is manually triggered
+
+name: Create Tag Releases
+
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
+on:
+  workflow_dispatch:
+    # Inputs the workflow accepts.
+    inputs:
+      Tag:
+        description: 'Tag to be created along with release'
+        # Default value if no value is explicitly provided
+        default: ''
+        # Input has to be provided for the workflow to run
+        required: true
+      git_ref: 
+        description: 'A git reference to create tag from. Can be either commit hash, or branch name.'
+        default: ''
+        required: true
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "greet"
+  createRelease:
+      runs-on: ubuntu-latest
+      strategy:
+        matrix: #This matrix allows multiple parallel jobs to create tags in the various repos at the same time
+          repo: [3scale/porta, 3scale/apisonator, 3scale/APIcast, 3scale/3scale_toolbox, 3scale/zync, 3scale/apicast-operator, 3scale/3scale-operator]
+      name: Create Release for ${{ matrix.repo }}
+      steps:
+        - uses: aurelien-baudet/workflow-dispatch@v2.1.1
+          with:
+           repo: ${{ matrix.repo }}
+           token: ${{ secrets.ACCESS_TOKEN_GITHUB }}
+           workflow: tagRelease.yml
+           inputs: '{ "Tag": "${{ inputs.Tag }}", "Commitish": "${{ inputs.git_ref }}"}'
+           wait-for-completion: true
+           display-workflow-run-url: true
