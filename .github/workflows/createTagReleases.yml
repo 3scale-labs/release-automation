@@ -20,17 +20,29 @@ on:
 jobs:
   # This workflow contains a single job called "greet"
   createRelease:
+      name: createRelease
       runs-on: ubuntu-latest
       strategy:
         matrix: #This matrix allows multiple parallel jobs to create tags in the various repos at the same time
-          repo: [3scale/porta, 3scale/apisonator, 3scale/APIcast, 3scale/3scale_toolbox, 3scale/zync, 3scale/apicast-operator, 3scale/3scale-operator]
-      name: Create Release for ${{ matrix.repo }}
+          repo: [3scale/porta, 3scale/apisonator, 3scale/APIcast, 3scale/zync, 3scale/apicast-operator, 3scale/3scale-operator]
       steps:
-        - uses: aurelien-baudet/workflow-dispatch@v2.1.1
+        - name: Create Release for ${{ matrix.repo }}
+          uses: aurelien-baudet/workflow-dispatch@v2.1.1
           with:
-           repo: ${{ matrix.repo }}
-           token: ${{ secrets.ACCESS_TOKEN_GITHUB }}
-           workflow: tagRelease.yml
-           inputs: '{ "tag": "${{ inputs.tag }}", "git_ref": "${{ inputs.git_ref }}"}'
-           wait-for-completion: true
-           display-workflow-run-url: true
+            ref: refs/heads/master # <-- this action is triggered in a repo with a 'main' branch, but targets a repo that uses 'master', this needs to be added as a workaround to stop workflow dispatch from triggering the action in a main branch that does not exist.
+            repo: ${{ matrix.repo }}
+            token: ${{ secrets.ACCESS_TOKEN_GITHUB }}
+            workflow: tagRelease.yml
+            inputs: '{ "tag": "${{ inputs.tag }}", "git_ref": "${{ inputs.git_ref }}"}'
+            wait-for-completion: true
+            display-workflow-run-url: true
+        - name: Create Release for 3scale/3scale_toolbox
+          uses: aurelien-baudet/workflow-dispatch@v2.1.1
+          with:
+            repo: 3scale/3scale_toolbox
+            token: ${{secrets.ACCESS_TOKEN_GITHUB}}
+            workflow: tagRelease.yml
+            inputs: '{ "tag": "${{ inputs.tag }}", "git_ref": "${{ inputs.git_ref }}"}'
+            wait-for-completion: true
+            display-workflow-run-url: true
+            
