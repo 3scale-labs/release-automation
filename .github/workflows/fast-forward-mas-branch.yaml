@@ -18,19 +18,36 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:  # This matrix allows multiple parallel jobs at various repos at the same time
-        repo:
-          - 3scale/apisonator
-          - 3scale/APIcast
-          - 3scale/apicast-operator
-          - 3scale/3scale-operator
-          - 3scale/3scale_toolbox
+        include:
+          - repo: 3scale/apisonator
+            workflow: fast-forward-branch.yaml
+            ref: master
+          - repo: 3scale/APIcast
+            workflow: fast-forward-branch.yaml
+            ref: master
+          - repo: 3scale/apicast-operator
+            workflow: fast-forward-branch.yaml
+            ref: master
+          - repo: 3scale/3scale-operator
+            workflow: fast-forward-branch.yaml
+            ref: master
+          - repo: 3scale/3scale_toolbox
+            workflow: fast-forward-branch.yaml
+            ref: main
+          - repo: 3scale/zync
+            workflow: fast-forward-manual.yml
+            ref: master
+          - repo: 3scale/porta
+            workflow: fast-forward-manual.yml
+            ref: master
     steps:
       - name: Fast forward MAS branch for ${{ matrix.repo }}
         uses: aurelien-baudet/workflow-dispatch@v2.1.1
         with:
           repo: ${{ matrix.repo }}
+          ref: refs/heads/${{ matrix.ref }}
           token: ${{ secrets.ACCESS_TOKEN_GITHUB }}
-          workflow: fast-forward-branch.yaml
-          inputs: '{ "to_branch": "${{ inputs.to_branch }}" }'
+          workflow: ${{ matrix.workflow }}
+          inputs: '{ "ref": "${{ matrix.ref }}", "to_branch": "${{ inputs.to_branch }}" }'
           wait-for-completion: true
           display-workflow-run-url: true
