@@ -45,4 +45,13 @@ jobs:
             inputs: '{ "tag": "${{ inputs.tag }}", "git_ref": "${{ inputs.git_ref }}"}'
             wait-for-completion: true
             display-workflow-run-url: true
+        - name: Create Release for 3scale/searchd
+          uses: aurelien-baudet/workflow-dispatch@v2.1.1
+          with:
+            repo: 3scale/searchd
+            token: ${{secrets.ACCESS_TOKEN_GITHUB}}
+            workflow: tagRelease.yml
+            inputs: '{ "tag": "${{ inputs.tag }}", "git_ref": "${{ inputs.git_ref }}"}'
+            wait-for-completion: true
+            display-workflow-run-url: true
             
