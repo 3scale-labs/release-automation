@@ -47,27 +47,25 @@ jobs:
               REF="refs/heads/master"
             fi
 
-            gh workflow run tagRelease.yml \
+            # Capture the output from gh workflow run
+            OUTPUT=$(gh workflow run tagRelease.yml \
               --repo ${{ matrix.repo }} \
               --ref "$REF" \
               --field tag="${{ inputs.tag }}" \
-              --field git_ref="${{ inputs.git_ref }}"
+              --field git_ref="${{ inputs.git_ref }}" 2>&1)
 
-            # Wait for the workflow run to appear
-            sleep 5
+            echo "$OUTPUT"
 
-            # Get the latest run ID
-            RUN_ID=$(gh run list \
-              --repo ${{ matrix.repo }} \
-              --workflow tagRelease.yml \
-              --limit 1 \
-              --json databaseId \
-              --jq '.[0].databaseId')
+            # Extract the run ID from the URL in the output
+            # Expected format: https://github.com/3scale/porta/actions/runs/24573081426
+            RUN_ID=$(echo "$OUTPUT" | grep -oP 'actions/runs/\K[0-9]+' | head -1)
 
             if [ -z "$RUN_ID" ]; then
-              echo "Failed to find workflow run"
+              echo "Failed to extract workflow run ID from output"
               exit 1
             fi
+
+            echo "Extracted workflow run ID: $RUN_ID"
 
             echo "Workflow run URL: https://github.com/${{ matrix.repo }}/actions/runs/$RUN_ID"
             echo "Waiting for completion..."
