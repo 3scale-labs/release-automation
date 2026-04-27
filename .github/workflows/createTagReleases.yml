@@ -18,40 +18,57 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "greet"
   createRelease:
-      name: createRelease
+      name: Create Release for ${{ matrix.repo }}
       runs-on: ubuntu-latest
       strategy:
-        matrix: #This matrix allows multiple parallel jobs to create tags in the various repos at the same time
-          repo: [3scale/porta, 3scale/apisonator, 3scale/APIcast, 3scale/zync, 3scale/apicast-operator, 3scale/3scale-operator]
+        matrix:
+          include:
+            - repo: 3scale/porta
+            - repo: 3scale/apisonator
+            - repo: 3scale/APIcast
+            - repo: 3scale/zync
+            - repo: 3scale/apicast-operator
+            - repo: 3scale/3scale-operator
+            # - repo: 3scale/searchd
+            #   ref: refs/heads/main
+            # - repo: 3scale/3scale_toolbox
+            #   ref: refs/heads/main
       steps:
         - name: Create Release for ${{ matrix.repo }}
-          uses: aurelien-baudet/workflow-dispatch@v2.1.1
-          with:
-            ref: refs/heads/master # <-- this action is triggered in a repo with a 'main' branch, but targets a repo that uses 'master', this needs to be added as a workaround to stop workflow dispatch from triggering the action in a main branch that does not exist.
-            repo: ${{ matrix.repo }}
-            token: ${{ secrets.ACCESS_TOKEN_GITHUB }}
-            workflow: tagRelease.yml
-            inputs: '{ "tag": "${{ inputs.tag }}", "git_ref": "${{ inputs.git_ref }}"}'
-            wait-for-completion: true
-            display-workflow-run-url: true
-        - name: Create Release for 3scale/3scale_toolbox
-          uses: aurelien-baudet/workflow-dispatch@v2.1.1
-          with:
-            repo: 3scale/3scale_toolbox
-            token: ${{secrets.ACCESS_TOKEN_GITHUB}}
-            workflow: tagRelease.yml
-            inputs: '{ "tag": "${{ inputs.tag }}", "git_ref": "${{ inputs.git_ref }}"}'
-            wait-for-completion: true
-            display-workflow-run-url: true
-        - name: Create Release for 3scale/searchd
-          uses: aurelien-baudet/workflow-dispatch@v2.1.1
-          with:
-            repo: 3scale/searchd
-            token: ${{secrets.ACCESS_TOKEN_GITHUB}}
-            workflow: tagRelease.yml
-            inputs: '{ "tag": "${{ inputs.tag }}", "git_ref": "${{ inputs.git_ref }}"}'
-            wait-for-completion: true
-            display-workflow-run-url: true
-            
+          env:
+            GH_TOKEN: ${{ secrets.ACCESS_TOKEN_GITHUB }}
+          run: |
+            echo "Triggering workflow for ${{ matrix.repo }}..."
+
+            # Use refs/heads/master as default if ref is not set
+            REF="${{ matrix.ref }}"
+            if [ -z "$REF" ]; then
+              REF="refs/heads/master"
+            fi
+
+            # Capture the output from gh workflow run
+            OUTPUT=$(gh workflow run tagRelease.yml \
+              --repo ${{ matrix.repo }} \
+              --ref "$REF" \
+              --field tag="${{ inputs.tag }}" \
+              --field git_ref="${{ inputs.git_ref }}" 2>&1)
+
+            echo "$OUTPUT"
+
+            # Extract the run ID from the URL in the output
+            # Expected format: https://github.com/3scale/porta/actions/runs/24573081426
+            RUN_ID=$(echo "$OUTPUT" | grep -oP 'actions/runs/\K[0-9]+' | head -1)
+
+            if [ -z "$RUN_ID" ]; then
+              echo "Failed to extract workflow run ID from output"
+              exit 1
+            fi
+
+            echo "Extracted workflow run ID: $RUN_ID"
+
+            echo "Workflow run URL: https://github.com/${{ matrix.repo }}/actions/runs/$RUN_ID"
+            echo "Waiting for completion..."
+
+            # Wait for completion and exit with the same status
+            gh run watch $RUN_ID --repo ${{ matrix.repo }} --exit-status
